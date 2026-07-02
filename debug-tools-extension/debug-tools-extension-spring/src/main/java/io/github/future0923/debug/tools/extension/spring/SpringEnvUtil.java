@@ -335,7 +335,20 @@ public class SpringEnvUtil {
     }
 
     public static Object getSpringConfig(String value) {
-        Environment environment = getLastBean(Environment.class);
+        initSpringContext();
+        for (ApplicationContext applicationContext : applicationContexts) {
+            Object property = getSpringConfig(applicationContext.getEnvironment(), value);
+            if (property != null) {
+                return property;
+            }
+        }
+        return getSpringConfig(getLastBean(Environment.class), value);
+    }
+
+    private static Object getSpringConfig(Environment environment, String value) {
+        if (environment == null) {
+            return null;
+        }
         Object property = environment.getProperty(value, Object.class);
         if (property == null) {
             // 尝试获取数组
