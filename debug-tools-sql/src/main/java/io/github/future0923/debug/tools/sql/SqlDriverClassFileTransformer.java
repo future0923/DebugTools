@@ -17,11 +17,11 @@
 package io.github.future0923.debug.tools.sql;
 
 import io.github.future0923.debug.tools.base.logging.Logger;
-import io.github.future0923.debug.tools.hotswap.core.util.JavassistUtil;
 import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.CtMethod;
 
+import java.io.ByteArrayInputStream;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.security.ProtectionDomain;
@@ -41,15 +41,18 @@ public class SqlDriverClassFileTransformer implements ClassFileTransformer {
                 return null;
             }
             String dotClassName = className.replace('/', '.');
-            if (!DataSourceDriverClassEnum.isTargetDriver(dotClassName)) {
+            if (!JdbcDriverClasses.isDriverClass(dotClassName)) {
                 return null;
             }
-            ClassPool classPool = JavassistUtil.getClassPool(loader);
-            CtClass ctClass = classPool.get(dotClassName);
+            ClassPool classPool = new ClassPool();
+            classPool.appendSystemPath();
+            CtClass ctClass = classPool.makeClass(new ByteArrayInputStream(classfileBuffer));
             CtMethod connectMethod = ctClass.getDeclaredMethod("connect", new CtClass[]{classPool.get("java.lang.String"), classPool.get("java.util.Properties")});
             connectMethod.insertAfter(buildProxyConnectionCode());
-            logger.info("Print {} log bytecode enhancement successful", DataSourceDriverClassEnum.getSqlDriverType(dotClassName));
-            return ctClass.toBytecode();
+            logger.info("Print {} log bytecode enhancement successful", JdbcDriverClasses.getDriverType(dotClassName));
+            byte[] result = ctClass.toBytecode();
+            ctClass.detach();
+            return result;
         } catch (Throwable t) {
             logger.error("Failed to print SQL log bytecode enhancement", t);
         }
