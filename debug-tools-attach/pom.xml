@@ -252,22 +252,22 @@
                             <goal>run</goal>
                         </goals>
                         <configuration>
-<!--                            <target>-->
-<!--                                <mkdir dir="/Users/weilai/Documents/debug-tools-idea/src/main/resources/lib"/>-->
-<!--                                <copy file="${project.build.directory}/${project.build.finalName}.jar"-->
-<!--                                      tofile="/Users/weilai/Documents/debug-tools-idea/src/main/resources/lib/${project.build.finalName}-${project.version}.jar"-->
-<!--                                      overwrite="true"/>-->
+                            <target>
+                                <mkdir dir="/Users/weilai/Documents/debug-tools-idea/src/main/resources/lib"/>
+                                <copy file="${project.build.directory}/${project.build.finalName}.jar"
+                                      tofile="/Users/weilai/Documents/debug-tools-idea/src/main/resources/lib/${project.build.finalName}-${project.version}.jar"
+                                      overwrite="true"/>
 
-<!--                                <mkdir dir="${project.basedir}/../debug-tools-boot/src/main/resources/lib"/>-->
-<!--                                <copy file="${project.build.directory}/${project.build.finalName}.jar"-->
-<!--                                      tofile="${project.basedir}/../debug-tools-boot/src/main/resources/lib/${project.build.finalName}.jar"-->
-<!--                                      overwrite="true"/>-->
+                                <mkdir dir="${project.basedir}/../debug-tools-boot/src/main/resources/lib"/>
+                                <copy file="${project.build.directory}/${project.build.finalName}.jar"
+                                      tofile="${project.basedir}/../debug-tools-boot/src/main/resources/lib/${project.build.finalName}.jar"
+                                      overwrite="true"/>
 
-<!--                                <mkdir dir="${project.basedir}/../dist"/>-->
-<!--                                <copy file="${project.build.directory}/${project.build.finalName}.jar"-->
-<!--                                      tofile="${project.basedir}/../dist/debug-tools-agent.jar"-->
-<!--                                      overwrite="true"/>-->
-<!--                            </target>-->
+                                <mkdir dir="${project.basedir}/../dist"/>
+                                <copy file="${project.build.directory}/${project.build.finalName}.jar"
+                                      tofile="${project.basedir}/../dist/debug-tools-agent.jar"
+                                      overwrite="true"/>
+                            </target>
                         </configuration>
                     </execution>
                 </executions>

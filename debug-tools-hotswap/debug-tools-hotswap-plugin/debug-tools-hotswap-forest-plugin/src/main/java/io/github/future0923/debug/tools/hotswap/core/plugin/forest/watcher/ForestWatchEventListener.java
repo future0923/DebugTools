@@ -20,7 +20,7 @@ import io.github.future0923.debug.tools.base.logging.Logger;
 import io.github.future0923.debug.tools.hotswap.core.annotation.FileEvent;
 import io.github.future0923.debug.tools.hotswap.core.command.Scheduler;
 import io.github.future0923.debug.tools.hotswap.core.plugin.forest.command.ForestReloadCommand;
-import io.github.future0923.debug.tools.hotswap.core.plugin.spring.transformer.SpringBeanWatchEventListener;
+import io.github.future0923.debug.tools.hotswap.core.plugin.forest.utils.ForestUtil;
 import io.github.future0923.debug.tools.hotswap.core.util.IOUtils;
 import io.github.future0923.debug.tools.hotswap.core.watch.WatchEventListener;
 import io.github.future0923.debug.tools.hotswap.core.watch.WatchFileEvent;
@@ -28,12 +28,9 @@ import io.github.future0923.debug.tools.hotswap.core.watch.WatchFileEvent;
 import java.io.IOException;
 import java.util.Objects;
 
-/**
- * @author future0923
- */
 public class ForestWatchEventListener implements WatchEventListener {
 
-    private static final Logger logger = Logger.getLogger(SpringBeanWatchEventListener.class);
+    private static final Logger logger = Logger.getLogger(ForestWatchEventListener.class);
 
     private final Scheduler scheduler;
 
@@ -60,13 +57,14 @@ public class ForestWatchEventListener implements WatchEventListener {
                 logger.trace("Watch event on resource '{}' skipped, probably Ok because of delete/create event sequence (compilation not finished yet).", e, event.getURI());
                 return;
             }
+            Class<?> clazz;
             try {
-                appClassLoader.loadClass(className);
+                clazz = appClassLoader.loadClass(className);
             } catch (ClassNotFoundException e) {
                 logger.warning("not found class", e);
                 return;
             }
-            if (isForest(appClassLoader)) {
+            if (ForestUtil.isForestClient(appClassLoader, clazz)) {
                 byte[] bytes = IOUtils.toByteArray(event.getURI());
                 scheduler.scheduleCommand(new ForestReloadCommand(appClassLoader, className, bytes, event.getURI().getPath(), event), 1000);
             }
@@ -84,14 +82,5 @@ public class ForestWatchEventListener implements WatchEventListener {
     @Override
     public int hashCode() {
         return Objects.hash(appClassLoader, basePackage);
-    }
-
-    public static boolean isForest(ClassLoader appClassLoader) {
-        try {
-            appClassLoader.loadClass("com.dtflys.forest.scanner.ClassPathClientScanner");
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
     }
 }

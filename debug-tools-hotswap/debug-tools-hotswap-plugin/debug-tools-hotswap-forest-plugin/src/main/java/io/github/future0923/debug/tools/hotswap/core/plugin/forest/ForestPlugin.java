@@ -19,10 +19,12 @@ package io.github.future0923.debug.tools.hotswap.core.plugin.forest;
 import io.github.future0923.debug.tools.base.logging.Logger;
 import io.github.future0923.debug.tools.base.utils.DebugToolsStringUtils;
 import io.github.future0923.debug.tools.hotswap.core.annotation.Init;
+import io.github.future0923.debug.tools.hotswap.core.annotation.LoadEvent;
 import io.github.future0923.debug.tools.hotswap.core.annotation.OnClassLoadEvent;
 import io.github.future0923.debug.tools.hotswap.core.annotation.Plugin;
 import io.github.future0923.debug.tools.hotswap.core.command.Scheduler;
-import io.github.future0923.debug.tools.hotswap.core.plugin.forest.patch.ForestPatcher;
+import io.github.future0923.debug.tools.hotswap.core.plugin.forest.command.ForestReloadCommand;
+import io.github.future0923.debug.tools.hotswap.core.plugin.forest.utils.ForestUtil;
 import io.github.future0923.debug.tools.hotswap.core.plugin.forest.watcher.ForestWatchEventListener;
 import io.github.future0923.debug.tools.hotswap.core.util.IOUtils;
 import io.github.future0923.debug.tools.hotswap.core.util.PluginManagerInvoker;
@@ -36,6 +38,7 @@ import javassist.CtMethod;
 import javassist.NotFoundException;
 
 import java.io.IOException;
+import java.lang.annotation.Annotation;
 import java.net.URL;
 import java.util.Enumeration;
 import java.util.List;
@@ -46,10 +49,7 @@ import java.util.List;
 @Plugin(
         name = "Forest",
         description = "Reload Forest after class change.",
-        testedVersions = {"1.5.32"}, expectedVersions = {"1.5.x"},
-        supportClass = {
-                ForestPatcher.class
-        }
+        testedVersions = {"1.5.32"}, expectedVersions = {"1.5.x"}
 )
 public class ForestPlugin {
 
@@ -63,15 +63,20 @@ public class ForestPlugin {
 
     @Init
     static ClassLoader appClassLoader;
+
+    private static Object scanner;
+
+    private static Object forestConfiguration;
+
     /**
      * 不能使用注解，因为注解只能获取AppClassLoader
      */
     private static ClassLoader userClassLoader;
 
     /**
-     * 获取OpenFeign的类加载器和注册者
+     * 获取Forest的类加载器和注册者
      */
-    public void init(ClassLoader classLoader, Object feignClientsRegistrar) {
+    public void init(ClassLoader classLoader, Object forestClientsRegistrar) {
         ForestPlugin.userClassLoader = classLoader;
     }
 
@@ -79,7 +84,25 @@ public class ForestPlugin {
         return userClassLoader == null ? appClassLoader : userClassLoader;
     }
 
-    public static void registerBasePackage(final List<String> basePackages) {
+    public static void setScanner(Object scanner) {
+        ForestPlugin.scanner = scanner;
+    }
+
+    public static Object getScanner() {
+        return ForestPlugin.scanner;
+    }
+
+
+    public static void setForestConfiguration(Object forestConfiguration) {
+        ForestPlugin.forestConfiguration = forestConfiguration;
+    }
+
+    public static Object getForestConfiguration() {
+        return ForestPlugin.forestConfiguration;
+    }
+
+
+    public static void registerForestBasePackage(final List<String> basePackages) {
         for (String basePackage : basePackages) {
             String classNameRegExp = DebugToolsStringUtils.getClassNameRegExp(basePackage);
             Enumeration<URL> resourceUrls;
@@ -102,7 +125,7 @@ public class ForestPlugin {
     }
 
     @OnClassLoadEvent(classNameRegexp = "com.dtflys.forest.springboot.annotation.ForestScannerRegister")
-    public static void patchFeignClientsRegistrar(CtClass ctClass, ClassPool classPool) throws NotFoundException, CannotCompileException {
+    public static void patchForestClientsRegistrar(CtClass ctClass, ClassPool classPool) throws NotFoundException, CannotCompileException {
         StringBuilder src = new StringBuilder("{");
         src.append(PluginManagerInvoker.buildInitializePlugin(ForestPlugin.class));
         src.append(PluginManagerInvoker.buildCallPluginMethod(ForestPlugin.class, "init",
@@ -116,7 +139,42 @@ public class ForestPlugin {
 
         CtMethod getBasePackages = ctClass.getDeclaredMethod("getBasePackages");
         getBasePackages.insertAfter("{" +
-                "   io.github.future0923.debug.tools.hotswap.core.plugin.forest.ForestPlugin.registerBasePackage($_);" +
+                "   io.github.future0923.debug.tools.hotswap.core.plugin.forest.ForestPlugin.registerForestBasePackage($_);" +
                 "}");
+    }
+
+    @OnClassLoadEvent(classNameRegexp = "com.dtflys.forest.config.ForestConfiguration")
+    public static void patchForestConfiguration(CtClass ctClass, ClassPool classPool) throws NotFoundException, CannotCompileException {
+        CtMethod configuration = ctClass.getDeclaredMethod("configuration");
+        configuration.insertAfter("{" +
+                "   io.github.future0923.debug.tools.hotswap.core.plugin.forest.ForestPlugin.setForestConfiguration($_);" +
+                "}");
+    }
+
+    @OnClassLoadEvent(classNameRegexp = "com.dtflys.forest.scanner.ClassPathClientScanner")
+    public static void patchForestScanner(CtClass ctClass, ClassPool classPool) throws NotFoundException, CannotCompileException {
+        CtConstructor[] declaredConstructors = ctClass.getDeclaredConstructors();
+        for (CtConstructor constructor : declaredConstructors) {
+            constructor.insertAfter("{" +
+                    "   io.github.future0923.debug.tools.hotswap.core.plugin.forest.ForestPlugin.setScanner(this);" +
+                    "}");
+        }
+    }
+
+    /**
+     * 重新加载forest client代理类
+     */
+    @OnClassLoadEvent(classNameRegexp = ".*", events = LoadEvent.REDEFINE)
+    public static void redefineForestClass(final Class<?> clazz, final ClassLoader appClassLoader, final byte[] bytes) throws ClassNotFoundException {
+        boolean forestClient = ForestUtil.isForestClient(appClassLoader, clazz);
+        logger.debug("forestClient '{}' for class '{}'", forestClient, clazz.getName());
+        logger.debug("forestClient is Interface :{}", clazz.isInterface());
+        logger.debug("forestClient is Post :{}", clazz.getAnnotation((Class<? extends Annotation>) appClassLoader.loadClass("com.dtflys.forest.annotation.Post")) != null);
+        logger.debug("forestClient is Get :{}", clazz.getAnnotation((Class<? extends Annotation>) appClassLoader.loadClass("com.dtflys.forest.annotation.Get")) != null);
+
+
+        if (ForestUtil.isForestClient(appClassLoader, clazz)) {
+            scheduler.scheduleCommand(new ForestReloadCommand(appClassLoader, clazz.getName(), bytes, ""), 1000);
+        }
     }
 }

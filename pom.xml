@@ -70,6 +70,7 @@
         <javassist.version>3.30.2-GA</javassist.version>
         <openfeign.version>3.0.1</openfeign.version>
         <netty.version>4.2.9.Final</netty.version>
+        <forest.version>1.5.32</forest.version>
     </properties>
 
     <modules>
@@ -94,16 +95,16 @@
                 </os>
                 <jdk>(,1.11)</jdk>
             </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>com.sun</groupId>
-                    <artifactId>tools</artifactId>
-                    <version>${java.version}</version>
-                    <scope>system</scope>
-                    <optional>true</optional>
-                    <systemPath>${java.home}/../lib/tools.jar</systemPath>
-                </dependency>
-            </dependencies>
+<!--            <dependencies>-->
+<!--                <dependency>-->
+<!--                    <groupId>com.sun</groupId>-->
+<!--                    <artifactId>tools</artifactId>-->
+<!--                    <version>${java.version}</version>-->
+<!--                    <scope>system</scope>-->
+<!--                    <optional>true</optional>-->
+<!--                    <systemPath>${java.home}/../lib/tools.jar</systemPath>-->
+<!--                </dependency>-->
+<!--            </dependencies>-->
         </profile>
         <profile>
             <id>surefire-java-lt21</id>
@@ -198,6 +199,13 @@
                 <groupId>org.noear</groupId>
                 <artifactId>solon-parent</artifactId>
                 <version>${solon.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.dtflys.forest</groupId>
+                <artifactId>forest</artifactId>
+                <version>${forest.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

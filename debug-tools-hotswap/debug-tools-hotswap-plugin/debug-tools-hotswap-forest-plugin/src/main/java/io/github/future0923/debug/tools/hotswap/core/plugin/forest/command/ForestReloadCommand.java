@@ -40,6 +40,17 @@ public class ForestReloadCommand extends EventMergeableCommand<ForestReloadComma
 
     private WatchFileEvent event;
 
+
+    /**
+     * 当class重新定义时，通过{@link io.github.future0923.debug.tools.hotswap.core.plugin.forest.ForestPlugin#redefineForestClass(Class, ClassLoader, byte[])} 创建命令后调用这
+     */
+    public ForestReloadCommand(ClassLoader userClassLoader, String className, byte[] bytes, String path) {
+        this.userClassLoader = userClassLoader;
+        this.className = className;
+        this.bytes = bytes;
+        this.path = path;
+    }
+
     /**
      * 当class新增时，通过{@link ForestWatchEventListener#onEvent(WatchFileEvent)}创建命令后调用这
      */
