@@ -34,22 +34,6 @@ public class SqlDriverClassFileTransformer implements ClassFileTransformer {
 
     private static final Logger logger = Logger.getLogger(SqlDriverClassFileTransformer.class);
 
-    /**
-     * JDBC 驱动类全限定名，用于 transformer 内的纯字符串匹配。
-     * 不能调用 DataSourceDriverClassEnum，否则会触发枚举类及其依赖的 hutool 类加载，
-     * 在 transformer 内形成递归类加载死锁。
-     */
-    private static final String[] TARGET_DRIVERS = {
-            "com.mysql.jdbc.NonRegisteringDriver",
-            "com.mysql.cj.jdbc.NonRegisteringDriver",
-            "org.postgresql.Driver",
-            "com.kingbase8.Driver",
-            "com.microsoft.sqlserver.jdbc.SQLServerDriver",
-            "com.clickhouse.jdbc.Driver",
-            "oracle.jdbc.driver.OracleDriver",
-            "dm.jdbc.driver.DmDriver"
-    };
-
     @Override
     public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
         try {
@@ -57,7 +41,7 @@ public class SqlDriverClassFileTransformer implements ClassFileTransformer {
                 return null;
             }
             String dotClassName = className.replace('/', '.');
-            if (!isTargetDriver(dotClassName)) {
+            if (!JdbcDriverClasses.isDriverClass(dotClassName)) {
                 return null;
             }
             ClassPool classPool = new ClassPool();
@@ -65,7 +49,7 @@ public class SqlDriverClassFileTransformer implements ClassFileTransformer {
             CtClass ctClass = classPool.makeClass(new ByteArrayInputStream(classfileBuffer));
             CtMethod connectMethod = ctClass.getDeclaredMethod("connect", new CtClass[]{classPool.get("java.lang.String"), classPool.get("java.util.Properties")});
             connectMethod.insertAfter(buildProxyConnectionCode());
-            logger.info("Print {} log bytecode enhancement successful", dotClassName);
+            logger.info("Print {} log bytecode enhancement successful", JdbcDriverClasses.getDriverType(dotClassName));
             byte[] result = ctClass.toBytecode();
             ctClass.detach();
             return result;
@@ -73,18 +57,6 @@ public class SqlDriverClassFileTransformer implements ClassFileTransformer {
             logger.error("Failed to print SQL log bytecode enhancement", t);
         }
         return null;
-    }
-
-    /**
-     * 纯字符串匹配，不引用任何外部类，避免 transformer 内类加载死锁
-     */
-    private static boolean isTargetDriver(String dotClassName) {
-        for (String driver : TARGET_DRIVERS) {
-            if (driver.equals(dotClassName)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private String buildProxyConnectionCode() {

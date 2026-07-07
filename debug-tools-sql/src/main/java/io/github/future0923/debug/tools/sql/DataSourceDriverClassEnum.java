@@ -24,10 +24,7 @@ import io.github.future0923.debug.tools.base.hutool.core.util.StrUtil;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
-import java.util.List;
 
 
 public enum DataSourceDriverClassEnum {
@@ -37,7 +34,6 @@ public enum DataSourceDriverClassEnum {
     MYSQL(
             "mysql",
             "com.mysql",
-            Arrays.asList("com.mysql.jdbc.NonRegisteringDriver", "com.mysql.cj.jdbc.NonRegisteringDriver"),
             (sta, parameters) -> {
                 String sql = sta.toString().replace("** BYTE ARRAY DATA **", "NULL");
                 return sql.replace("com.mysql.jdbc.ClientPreparedStatement:", "")
@@ -53,7 +49,6 @@ public enum DataSourceDriverClassEnum {
     POSTGRESQL(
             "postgresql",
             "org.postgresql",
-            Collections.singletonList("org.postgresql.Driver"),
             (sta, parameters) -> formatStringSql(sta.toString(), parameters)
     ),
 
@@ -63,7 +58,6 @@ public enum DataSourceDriverClassEnum {
     KINGBASE(
             "kingbase",
             "com.kingbase8",
-            Collections.singletonList("com.kingbase8.Driver"),
             (sta, parameters) -> formatStringSql(sta.toString(), parameters)
     ),
 
@@ -73,7 +67,6 @@ public enum DataSourceDriverClassEnum {
     SQLSERVER(
             "sqlserver",
             "com.microsoft.sqlserver",
-            Collections.singletonList("com.microsoft.sqlserver.jdbc.SQLServerDriver"),
             (sta, parameters) -> {
                 Object[] inOutParam = (Object[]) ReflectUtil.getFieldValue(sta, "inOutParam");
                 Object[] parameterValues = new Object[inOutParam.length];
@@ -90,7 +83,6 @@ public enum DataSourceDriverClassEnum {
     CLICKHOUSE(
             "clickhouse",
             "com.clickhouse",
-            Collections.singletonList("com.clickhouse.jdbc.Driver"),
             (sta, parameters) -> sta.toString()
     ),
 
@@ -100,7 +92,6 @@ public enum DataSourceDriverClassEnum {
     ORACLE(
             "oracle",
             "oracle.jdbc",
-            Collections.singletonList("oracle.jdbc.driver.OracleDriver"),
             (sta, parameters) -> {
                 String statementQuery = ReflectUtil.getFieldValue(ReflectUtil.getFieldValue(sta, "preparedStatement"), "sqlObject").toString();
                 return formatStringSql(statementQuery, parameters);
@@ -113,7 +104,6 @@ public enum DataSourceDriverClassEnum {
     DM(
             "dm",
             "dm.jdbc",
-            Collections.singletonList("dm.jdbc.driver.DmDriver"),
             (sta, parameters) -> {
                 String statementQuery;
                 Object rpstmt = ReflectUtil.getFieldValue(sta, "rpstmt");
@@ -127,10 +117,9 @@ public enum DataSourceDriverClassEnum {
     ),
     ;
 
-    DataSourceDriverClassEnum(String type, String packagePrefix, List<String> driverClassName, SqlFormat format) {
+    DataSourceDriverClassEnum(String type, String packagePrefix, SqlFormat format) {
         this.type = type;
         this.packagePrefix = packagePrefix;
-        this.driverClassName = driverClassName;
         this.format = format;
     }
 
@@ -144,7 +133,6 @@ public enum DataSourceDriverClassEnum {
 
     private final String type;
     private final String packagePrefix;
-    private final List<String> driverClassName;
     private final SqlFormat format;
 
     /**
@@ -192,11 +180,12 @@ public enum DataSourceDriverClassEnum {
         if (StrUtil.isBlank(statementClassName)) {
             return null;
         }
-        return Arrays
-                .stream(DataSourceDriverClassEnum.values())
-                .filter(dbType -> statementClassName.startsWith(dbType.packagePrefix))
-                .findFirst()
-                .orElse(null);
+        for (DataSourceDriverClassEnum dbType : values()) {
+            if (statementClassName.startsWith(dbType.packagePrefix)) {
+                return dbType;
+            }
+        }
+        return null;
     }
 
     /**
@@ -209,9 +198,7 @@ public enum DataSourceDriverClassEnum {
         if (StrUtil.isBlank(className)) {
             return Boolean.FALSE;
         }
-        return Arrays
-                .stream(DataSourceDriverClassEnum.values())
-                .anyMatch(dbType -> dbType.driverClassName.contains(className));
+        return JdbcDriverClasses.isDriverClass(className);
     }
 
     /**
@@ -224,11 +211,6 @@ public enum DataSourceDriverClassEnum {
         if (StrUtil.isBlank(className)) {
             return "";
         }
-        return Arrays
-                .stream(DataSourceDriverClassEnum.values())
-                .filter(dbType -> dbType.driverClassName.contains(className))
-                .findFirst()
-                .map(DataSourceDriverClassEnum::getType)
-                .orElse("");
+        return JdbcDriverClasses.getDriverType(className);
     }
 }
