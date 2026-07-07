@@ -44,6 +44,7 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.ClassUtils;
 
 import java.beans.Introspector;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -65,20 +66,39 @@ public class SpringEnvUtil {
 
     private static volatile boolean init = false;
 
-    private static List<BeanFactory> beanFactories;
+    private static List<BeanFactory> beanFactories = Collections.emptyList();
 
-    private static List<ApplicationContext> applicationContexts;
+    private static List<ApplicationContext> applicationContexts = Collections.emptyList();
 
     private static void initSpringContext() {
         if (!init) {
             synchronized (SpringEnvUtil.class) {
                 if (!init) {
-                    beanFactories = Arrays.asList(BeanInstanceUtils.getInstances(BeanFactory.class));
-                    applicationContexts = sort(BeanInstanceUtils.getInstances(ApplicationContext.class));
-                    init = true;
+                    refreshSpringContext();
+                    init = isSpringContextReadyToCache(applicationContexts);
                 }
             }
         }
+    }
+
+    private static void refreshSpringContext() {
+        beanFactories = Arrays.asList(BeanInstanceUtils.getInstances(BeanFactory.class));
+        applicationContexts = sort(BeanInstanceUtils.getInstances(ApplicationContext.class));
+    }
+
+    static boolean isSpringContextReadyToCache(List<ApplicationContext> applicationContexts) {
+        if (applicationContexts == null || applicationContexts.isEmpty()) {
+            return false;
+        }
+        for (ApplicationContext applicationContext : applicationContexts) {
+            if (isBootstrapContext(applicationContext) || !isContextActive(applicationContext)) {
+                continue;
+            }
+            if (isContextUsableForInvocation(applicationContext)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static List<ApplicationContext> sort(ApplicationContext[] applicationContexts) {
@@ -375,18 +395,27 @@ public class SpringEnvUtil {
 
     public static Map<String, Object> getSpringReadyStatus() {
         initSpringContext();
+        return evaluateSpringReadyStatus(applicationContexts, init);
+    }
+
+    static Map<String, Object> evaluateSpringReadyStatus(List<ApplicationContext> applicationContexts) {
+        return evaluateSpringReadyStatus(applicationContexts, isSpringContextReadyToCache(applicationContexts));
+    }
+
+    private static Map<String, Object> evaluateSpringReadyStatus(List<ApplicationContext> applicationContexts, boolean ready) {
+        if (ready) {
+            return readyStatus(true, "UP", false);
+        }
         if (applicationContexts == null || applicationContexts.isEmpty()) {
             return readyStatus(false, "STARTING", true);
         }
         for (ApplicationContext applicationContext : applicationContexts) {
-            if (!isContextActive(applicationContext)) {
+            if (isBootstrapContext(applicationContext) || !isContextActive(applicationContext)) {
                 continue;
             }
-            if (isWebServerContext(applicationContext)) {
-                boolean webServerStarted = isWebServerStarted(applicationContext);
-                return readyStatus(webServerStarted, webServerStarted ? "UP" : "STARTING", !webServerStarted);
+            if (isContextUsableForInvocation(applicationContext)) {
+                return readyStatus(true, "UP", false);
             }
-            return readyStatus(true, "UP", false);
         }
         return readyStatus(false, "STARTING", true);
     }
@@ -404,29 +433,84 @@ public class SpringEnvUtil {
                 ((ConfigurableApplicationContext) applicationContext).isActive();
     }
 
-    private static boolean isWebServerContext(ApplicationContext applicationContext) {
-        try {
-            applicationContext.getClass().getMethod("getWebServer");
+    private static boolean isBootstrapContext(ApplicationContext applicationContext) {
+        String id = applicationContext.getId();
+        if (id != null && "bootstrap".equalsIgnoreCase(id)) {
             return true;
-        } catch (NoSuchMethodException e) {
+        }
+        String displayName = applicationContext.getDisplayName();
+        return displayName != null && displayName.toLowerCase().contains("bootstrap");
+    }
+
+    private static boolean isContextUsableForInvocation(ApplicationContext applicationContext) {
+        if (isAcceptingTraffic(applicationContext)) {
+            return true;
+        }
+        RefreshState refreshState = getRefreshState(applicationContext);
+        if (refreshState == RefreshState.NOT_FINISHED) {
+            return false;
+        }
+        return true;
+    }
+
+    private static boolean isAcceptingTraffic(ApplicationContext applicationContext) {
+        try {
+            ClassLoader classLoader = applicationContext.getClassLoader();
+            if (classLoader == null) {
+                classLoader = Thread.currentThread().getContextClassLoader();
+            }
+            Class<?> availabilityClass = Class.forName("org.springframework.boot.availability.ApplicationAvailability", false, classLoader);
+            Class<?> readinessStateClass = Class.forName("org.springframework.boot.availability.ReadinessState", false, classLoader);
+            Object availability = applicationContext.getBean(availabilityClass);
+            Object readinessEvent = availabilityClass.getMethod("getLastChangeEvent", Class.class).invoke(availability, readinessStateClass);
+            if (readinessEvent == null) {
+                return false;
+            }
+            Object readinessState = readinessEvent.getClass().getMethod("getState").invoke(readinessEvent);
+            return readinessState != null && "ACCEPTING_TRAFFIC".equals(((Enum<?>) readinessState).name());
+        } catch (ClassNotFoundException | BeansException e) {
+            return false;
+        } catch (Exception e) {
+            if (ProjectConstants.DEBUG) {
+                logger.warning("获取 Spring Boot readiness 状态失败", e);
+            }
             return false;
         }
     }
 
-    private static boolean isWebServerStarted(ApplicationContext applicationContext) {
+    private static RefreshState getRefreshState(ApplicationContext applicationContext) {
         try {
-            Object webServer = applicationContext.getClass().getMethod("getWebServer").invoke(applicationContext);
-            if (webServer == null) {
-                return false;
+            Field lifecycleProcessor = findField(applicationContext.getClass(), "lifecycleProcessor");
+            if (lifecycleProcessor == null) {
+                return RefreshState.UNKNOWN;
             }
-            Object port = webServer.getClass().getMethod("getPort").invoke(webServer);
-            return port instanceof Integer && (Integer) port > 0;
+            // 只用作避免 refresh 过程中太早 ready；拿不到时不能阻塞 DebugTools 方法调用。
+            lifecycleProcessor.setAccessible(true);
+            return lifecycleProcessor.get(applicationContext) == null ? RefreshState.NOT_FINISHED : RefreshState.FINISHED;
         } catch (Exception e) {
             if (ProjectConstants.DEBUG) {
-                logger.warning("获取 Spring WebServer 状态失败", e);
+                logger.warning("获取 Spring refresh 状态失败", e);
             }
-            return false;
+            return RefreshState.UNKNOWN;
         }
+    }
+
+    private static Field findField(Class<?> clazz, String fieldName) {
+        Class<?> searchType = clazz;
+        while (searchType != null && searchType != Object.class) {
+            try {
+                return searchType.getDeclaredField(fieldName);
+            } catch (NoSuchFieldException e) {
+                searchType = searchType.getSuperclass();
+            }
+        }
+        return null;
+    }
+
+    private enum RefreshState {
+        FINISHED,
+        NOT_FINISHED,
+        UNKNOWN
     }
 
     @SuppressWarnings("unchecked")
