@@ -166,13 +166,6 @@ public class ForestPlugin {
      */
     @OnClassLoadEvent(classNameRegexp = ".*", events = LoadEvent.REDEFINE)
     public static void redefineForestClass(final Class<?> clazz, final ClassLoader appClassLoader, final byte[] bytes) throws ClassNotFoundException {
-        boolean forestClient = ForestUtil.isForestClient(appClassLoader, clazz);
-        logger.debug("forestClient '{}' for class '{}'", forestClient, clazz.getName());
-        logger.debug("forestClient is Interface :{}", clazz.isInterface());
-        logger.debug("forestClient is Post :{}", clazz.getAnnotation((Class<? extends Annotation>) appClassLoader.loadClass("com.dtflys.forest.annotation.Post")) != null);
-        logger.debug("forestClient is Get :{}", clazz.getAnnotation((Class<? extends Annotation>) appClassLoader.loadClass("com.dtflys.forest.annotation.Get")) != null);
-
-
         if (ForestUtil.isForestClient(appClassLoader, clazz)) {
             scheduler.scheduleCommand(new ForestReloadCommand(appClassLoader, clazz.getName(), bytes, ""), 1000);
         }
