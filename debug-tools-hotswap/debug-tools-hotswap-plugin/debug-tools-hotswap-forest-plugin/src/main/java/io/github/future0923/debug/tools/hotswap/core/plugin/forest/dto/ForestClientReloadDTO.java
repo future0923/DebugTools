@@ -24,11 +24,13 @@ public class ForestClientReloadDTO {
     private final byte[] bytes;
 
     private final String path;
+    private final ClassLoader classLoader;
 
-    public ForestClientReloadDTO(String className, byte[] bytes, String path) {
+    public ForestClientReloadDTO(String className, byte[] bytes, String path, ClassLoader classLoader) {
         this.className = className;
         this.bytes = bytes;
         this.path = path;
+        this.classLoader = classLoader;
     }
 
     public byte[] getBytes() {
@@ -41,5 +43,9 @@ public class ForestClientReloadDTO {
 
     public String getPath() {
         return path;
+    }
+
+    public ClassLoader getClassLoader() {
+        return classLoader;
     }
 }

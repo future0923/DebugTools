@@ -17,6 +17,7 @@
 package io.github.future0923.debug.tools.hotswap.core.plugin.forest.reload;
 
 import com.dtflys.forest.config.ForestConfiguration;
+import com.dtflys.forest.proxy.ProxyFactory;
 import com.dtflys.forest.scanner.ClassPathClientScanner;
 import io.github.future0923.debug.tools.base.constants.ProjectConstants;
 import io.github.future0923.debug.tools.base.logging.Logger;
@@ -30,8 +31,10 @@ import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.BeanNameGenerator;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -71,13 +74,24 @@ public class ForestReload {
                     return;
                 }
 
-                if(forestConfiguration.getInstanceCache().containsKey(Class.forName(className))){
-                    logger.debug("forestConfiguration instance cache contains key {},starting remove", className);
-                    forestConfiguration.getInstanceCache().remove(Class.forName(className));
+                ClassLoader classLoader = dto.getClassLoader();
+                Class<?> clazz = classLoader.loadClass(className);
+
+                Class<?> forestConfigurationClazz = classLoader.loadClass("com.dtflys.forest.config.ForestConfiguration");
+                Field clientProxyFactoryCacheField = forestConfigurationClazz.getDeclaredField("CLIENT_PROXY_FACTORY_CACHE");
+                clientProxyFactoryCacheField.setAccessible(true);
+                Map<Class<?>, ProxyFactory<?>> clientProxyFactoryCache = (Map<Class<?>, ProxyFactory<?>>) clientProxyFactoryCacheField.get(forestConfiguration);
+                if (clientProxyFactoryCache.containsKey(clazz)) {
+                    logger.debug("forestConfiguration client proxy factory cache contains key {},starting remove", className);
+                    clientProxyFactoryCache.remove(clazz);
                 }
 
-                forestConfiguration.createInstance(Class.forName(className));
-                defineBean(className, dto.getBytes(), dto.getPath());
+                if (forestConfiguration.getInstanceCache().containsKey(clazz)) {
+                    logger.debug("forestConfiguration instance cache contains key {},starting remove", className);
+                    forestConfiguration.getInstanceCache().remove(clazz);
+                }
+
+                defineBean(className, dto.getBytes(), dto.getPath(), classLoader);
                 logger.reload("reload {} in {}", className);
             }
         } catch (Exception e) {
@@ -88,11 +102,11 @@ public class ForestReload {
     }
 
 
-    protected void forestBeanDefinition(ClassPathClientScanner scanner, BeanDefinitionHolder holder) {
+    protected void forestBeanDefinition(ClassPathClientScanner scanner, BeanDefinitionHolder holder, ClassLoader classLoader) {
         try {
             Set<BeanDefinitionHolder> holders = new HashSet<>();
             holders.add(holder);
-            Class<?> classPathMapperScanner = Class.forName("com.dtflys.forest.scanner.ClassPathClientScanner");
+            Class<?> classPathMapperScanner = classLoader.loadClass("com.dtflys.forest.scanner.ClassPathClientScanner");
             Method method = classPathMapperScanner.getDeclaredMethod("processBeanDefinitions", Set.class);
 
             boolean isAccess = method.isAccessible();
@@ -104,7 +118,7 @@ public class ForestReload {
         }
     }
 
-    protected void defineBean(String className, byte[] bytes, String path) throws IOException {
+    protected void defineBean(String className, byte[] bytes, String path, ClassLoader classLoader) throws IOException {
         ClassPathClientScanner forestScanner = (ClassPathClientScanner) ForestPlugin.getScanner();
 
         if (forestScanner == null) {
@@ -122,7 +136,7 @@ public class ForestReload {
         BeanDefinitionRegistry registry = (BeanDefinitionRegistry) ReflectionHelper.get(scannerAgent, "registry");
         String beanName = beanNameGenerator.generateBeanName(beanDefinition, registry);
         BeanDefinitionHolder definitionHolder = new BeanDefinitionHolder(beanDefinition, beanName);
-        forestBeanDefinition(forestScanner, definitionHolder);
+        forestBeanDefinition(forestScanner, definitionHolder, classLoader);
         logger.reload("register forest client {} in spring bean", className);
     }
 

@@ -38,7 +38,6 @@ import javassist.CtMethod;
 import javassist.NotFoundException;
 
 import java.io.IOException;
-import java.lang.annotation.Annotation;
 import java.net.URL;
 import java.util.Enumeration;
 import java.util.List;
@@ -49,7 +48,7 @@ import java.util.List;
 @Plugin(
         name = "Forest",
         description = "Reload Forest after class change.",
-        testedVersions = {"1.5.32"}, expectedVersions = {"1.5.x"}
+        testedVersions = {"1.5.32", "1.8.1"}, expectedVersions = {"1.5.x", "1.8.x"}
 )
 public class ForestPlugin {
 
@@ -143,9 +142,9 @@ public class ForestPlugin {
                 "}");
     }
 
-    @OnClassLoadEvent(classNameRegexp = "com.dtflys.forest.config.ForestConfiguration")
+    @OnClassLoadEvent(classNameRegexp = "com.dtflys.forest.springboot.ForestBeanRegister")
     public static void patchForestConfiguration(CtClass ctClass, ClassPool classPool) throws NotFoundException, CannotCompileException {
-        CtMethod configuration = ctClass.getDeclaredMethod("configuration");
+        CtMethod configuration = ctClass.getDeclaredMethod("registerForestConfiguration");
         configuration.insertAfter("{" +
                 "   io.github.future0923.debug.tools.hotswap.core.plugin.forest.ForestPlugin.setForestConfiguration($_);" +
                 "}");

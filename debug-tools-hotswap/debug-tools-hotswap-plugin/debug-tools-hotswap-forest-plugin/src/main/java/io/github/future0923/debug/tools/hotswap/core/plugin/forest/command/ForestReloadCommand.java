@@ -77,7 +77,7 @@ public class ForestReloadCommand extends EventMergeableCommand<ForestReloadComma
             ClassLoader orginalClassLoader = Thread.currentThread().getContextClassLoader();
             Thread.currentThread().setContextClassLoader(userClassLoader);
             Class<?> reloadClass = userClassLoader.loadClass(ForestReload.class.getName());
-            ReflectUtil.invoke(ReflectUtil.newInstance(reloadClass), "reload", ReflectUtil.newInstance(userClassLoader.loadClass(ForestClientReloadDTO.class.getName()), className, bytes, path));
+            ReflectUtil.invoke(ReflectUtil.newInstance(reloadClass), "reload", ReflectUtil.newInstance(userClassLoader.loadClass(ForestClientReloadDTO.class.getName()), className, bytes, path, userClassLoader));
             Thread.currentThread().setContextClassLoader(orginalClassLoader);
         } catch (Exception e) {
             logger.error("reloadConfiguration error", e);
