@@ -25,6 +25,7 @@
         <module>debug-tools-hotswap-solon-plugin</module>
         <module>debug-tools-hotswap-intellij-plugin</module>
         <module>debug-tools-hotswap-feign-plugin</module>
+        <module>debug-tools-hotswap-forest-plugin</module>
     </modules>
 
 </project>
