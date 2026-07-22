@@ -43,6 +43,8 @@ public interface ProjectConstants {
 
     String AUTO_ATTACH_FLAG_FILE = NAME + "/auto_attach.txt";
 
+    String AUTO_ATTACH_PID_FLAG_FILE_PREFIX = NAME + "/auto_attach_";
+
     String PROJECT_PACKAGE_PREFIX = "io.github.future0923.debug.tools";
 
     String PROJECT_PACKAGE_PATH = "io/github/future0923/debug/tools";

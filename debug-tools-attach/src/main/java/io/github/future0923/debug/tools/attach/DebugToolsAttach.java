@@ -20,6 +20,7 @@ import io.github.future0923.debug.tools.base.config.AgentArgs;
 import io.github.future0923.debug.tools.base.config.AgentConfig;
 import io.github.future0923.debug.tools.base.constants.ProjectConstants;
 import io.github.future0923.debug.tools.base.hutool.core.io.FileUtil;
+import io.github.future0923.debug.tools.base.hutool.core.util.RuntimeUtil;
 import io.github.future0923.debug.tools.base.logging.Logger;
 import io.github.future0923.debug.tools.base.utils.DebugToolsExecUtils;
 import io.github.future0923.debug.tools.base.utils.DebugToolsFileUtils;
@@ -137,6 +138,9 @@ public class DebugToolsAttach {
     }
 
     private static void autoAttach() throws IOException {
+        String pid = String.valueOf(RuntimeUtil.getPid());
+        FileUtil.writeUtf8String("1", DebugToolsFileUtils.getAutoAttachFile(pid));
+        // 保留全局标记，兼容尚未支持 PID 就绪文件的旧版 IDEA 插件。
         FileUtil.writeUtf8String("1", DebugToolsFileUtils.getAutoAttachFile());
     }
 }

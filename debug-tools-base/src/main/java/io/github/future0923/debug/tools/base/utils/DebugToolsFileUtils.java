@@ -531,4 +531,16 @@ public class DebugToolsFileUtils {
         return FileUtil.touch(FileUtil.getUserHomePath() + "/" + ProjectConstants.AUTO_ATTACH_FLAG_FILE);
     }
 
+    /**
+     * 获取指定 JVM 的自动附加就绪文件，避免多个进程共用全局标记互相干扰。
+     *
+     * @param pid JVM 进程 ID
+     * @return 自动附加就绪文件
+     */
+    public static File getAutoAttachFile(String pid) {
+        return FileUtil.touch(
+                FileUtil.getUserHomePath() + "/" + ProjectConstants.AUTO_ATTACH_PID_FLAG_FILE_PREFIX + pid + ".txt"
+        );
+    }
+
 }
