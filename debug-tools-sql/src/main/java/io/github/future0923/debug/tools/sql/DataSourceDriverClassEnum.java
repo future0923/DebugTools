@@ -62,6 +62,20 @@ public enum DataSourceDriverClassEnum {
     ),
 
     /**
+     * GBase 8s（产品线 gbasedbt，驱动 gbasedbtjdbc）。
+     * <p>
+     * 驱动 {@code com.gbasedbt.jdbc.Driver} 的 PreparedStatement 为
+     * {@code com.gbasedbt.jdbc.IfxPreparedStatement}，{@code toString()} 不可直接用。
+     * SQL 字段名跨版本混淆且父类可能存在同名非 String 字段（如 3.6.5 的 short v），
+     * 统一交给 {@link GbaseSqlSupport#extractSql(Statement)} 提取后再填充参数。
+     */
+    GBASEDBT(
+            "gbasedbt",
+            "com.gbasedbt",
+            (sta, parameters) -> formatStringSql(GbaseSqlSupport.extractSql(sta), parameters)
+    ),
+
+    /**
      * sqlserver
      */
     SQLSERVER(

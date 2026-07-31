@@ -32,6 +32,8 @@ class JdbcDriverClasses {
             {"com.mysql.cj.jdbc.NonRegisteringDriver", "mysql"},
             {"org.postgresql.Driver", "postgresql"},
             {"com.kingbase8.Driver", "kingbase"},
+            // GBase 8s（产品线 gbasedbt / Informix 兼容）JDBC 驱动
+            {"com.gbasedbt.jdbc.Driver", "gbasedbt"},
             {"com.microsoft.sqlserver.jdbc.SQLServerDriver", "sqlserver"},
             {"com.clickhouse.jdbc.Driver", "clickhouse"},
             {"oracle.jdbc.driver.OracleDriver", "oracle"},
