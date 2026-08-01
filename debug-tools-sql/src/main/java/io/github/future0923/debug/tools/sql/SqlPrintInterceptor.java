@@ -39,6 +39,7 @@ import io.github.future0923.debug.tools.vm.JvmToolsUtils;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
@@ -58,6 +59,8 @@ public class SqlPrintInterceptor {
     private static final Logger logger = Logger.getLogger(SqlPrintInterceptor.class);
 
     private static final List<String> CONNECTION_AGENT_METHODS = Arrays.asList("prepareStatement", "createStatement");
+
+    private static final List<String> CONNECTION_AGENT_METHODS_PROCEDURE = Arrays.asList("prepareCall");
 
     private static final List<String> PREPARED_STATEMENT_METHODS = Arrays.asList("execute", "executeUpdate", "executeQuery", "addBatch");
 
@@ -113,6 +116,15 @@ public class SqlPrintInterceptor {
         return (Statement) c;
     }
 
+    private static Statement proxyCallableStatement(final Statement statement) {
+        Object c = Proxy.newProxyInstance(
+                SqlPrintByteCodeEnhance.class.getClassLoader(),
+                new Class[]{PreparedStatement.class, Statement.class, CallableStatement.class},
+                new StatementHandler(statement)
+        );
+        return (Statement) c;
+    }
+
     /**
      * connection 代理处理
      */
@@ -129,6 +141,9 @@ public class SqlPrintInterceptor {
             Object result = method.invoke(connection, args);
             if (CONNECTION_AGENT_METHODS.contains(method.getName())) {
                 return proxyStatement((Statement) result);
+            }
+            if (CONNECTION_AGENT_METHODS_PROCEDURE.contains(method.getName())) {
+                return proxyCallableStatement((Statement) result);
             }
             return result;
         }

@@ -38,6 +38,8 @@ public enum DataSourceDriverClassEnum {
                 String sql = sta.toString().replace("** BYTE ARRAY DATA **", "NULL");
                 return sql.replace("com.mysql.jdbc.ClientPreparedStatement:", "")
                         .replace("com.mysql.cj.jdbc.ClientPreparedStatement:", "")
+                        .replace("com.mysql.jdbc.CallableStatement:", "")
+                        .replace("com.mysql.cj.jdbc.CallableStatement:", "")
                         .replaceFirst("com\\.mysql\\.jdbc\\.ServerPreparedStatement\\[\\d+]:\\s*", "")
                         .replaceFirst("com\\.mysql\\.cj\\.jdbc\\.ServerPreparedStatement\\[\\d+]:\\s*", "");
             }
