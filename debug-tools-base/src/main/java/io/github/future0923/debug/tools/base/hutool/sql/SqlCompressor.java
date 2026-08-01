@@ -81,7 +81,7 @@ public class SqlCompressor {
         // 移除 -- 注释（直至行尾）
         input = input.replaceAll("(?m)--.*?$", "");
         // 移除 /**/ 块注释
-        input = input.replaceAll("/\\*.*?\\*/", "");
+        // input = input.replaceAll("/\\*.*?\\*/", "");
         return input;
     }
 

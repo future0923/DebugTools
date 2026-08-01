@@ -18,6 +18,7 @@ package io.github.future0923.debug.tools.sql;
 
 import io.github.future0923.debug.tools.base.hutool.sql.SqlCompressor;
 import io.github.future0923.debug.tools.base.hutool.sql.SqlFormatter;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -38,6 +39,9 @@ class SqlCompressorTest {
 
         String compressed = SqlCompressor.compressSql(sql);
         System.out.println(compressed);
+        String expect =
+                "SELECT * FROM user WHERE name = '张 三' AND age > 18 /* 这里是块注释，描述条件 */ AND remark = \"备注 换行\"";
+        Assertions.assertEquals(expect, compressed);
     }
 
     @Test
