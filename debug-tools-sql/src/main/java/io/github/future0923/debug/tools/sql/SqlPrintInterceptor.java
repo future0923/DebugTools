@@ -169,7 +169,14 @@ public class SqlPrintInterceptor {
                 return method.invoke(statement, args);
             }
             long startTime = System.currentTimeMillis();
-            Object result = method.invoke(statement, args);
+            Object result = null;
+            Exception exception = null;
+            try {
+                result = method.invoke(statement, args);
+            } catch (Exception e) {
+                logger.error("Failed to invoke statement method, method: " + method.getName());
+                exception = e;
+            }
             long endTime = System.currentTimeMillis();
             if (method.getName().startsWith("setNull")) {
                 // 显式记录 NULL 值
@@ -227,6 +234,9 @@ public class SqlPrintInterceptor {
                     printSql(endTime - startTime, statement, parameters.toArray(new Object[0]), method, args);
                 }
                 parameters.clear();
+            }
+            if (exception != null) {
+                throw exception;
             }
             return result;
         }
