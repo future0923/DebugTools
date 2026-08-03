@@ -61,7 +61,7 @@ public class SqlFileWriter {
             String timeStr = now.format(TIME_FORMATTER);
 
             String content = String.format(
-                    "-- %s | %s | %dms\n%s;\n\n",
+                    "-- %s | %s | %dms\n%s\n\n",
                     timeStr, dbType, consumeTime, sql
             );
 
