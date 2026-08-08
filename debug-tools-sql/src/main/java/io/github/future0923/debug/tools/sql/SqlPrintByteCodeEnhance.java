@@ -39,6 +39,8 @@ public class SqlPrintByteCodeEnhance {
         SqlPrintInterceptor.setPrintSqlType(agentArgs.getPrintSql());
         if (PrintSqlType.isPrint(agentArgs.getPrintSql()) || BooleanUtil.toBoolean(agentArgs.getTraceSql())) {
             SqlPrintInterceptor.setAutoSaveSql(BooleanUtil.toBoolean(agentArgs.getAutoSaveSql()));
+            boolean preserveBlockComments = BooleanUtil.toBoolean(agentArgs.getCompressSqlPreserveBlockComments());
+            SqlPrintInterceptor.setCompressSqlPreserveBlockComments(preserveBlockComments);
             SqlPrintInterceptor.setApplicationName(agentArgs.getApplicationName());
             SqlPrintInterceptor.setProjectContext(agentArgs.getProjectName(), agentArgs.getProjectPathHash());
             DebugToolsIgnoreSqlUtils.create(agentArgs.getIgnoreSqlConfigPath());

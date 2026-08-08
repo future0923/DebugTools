@@ -112,6 +112,11 @@ public class AgentArgs {
     private String autoSaveSql;
 
     /**
+     * 压缩打印 SQL 时，是否保留 块注释
+     */
+    private String compressSqlPreserveBlockComments;
+
+    /**
      * SQL日志保留天数
      */
     private Integer sqlRetentionDays;

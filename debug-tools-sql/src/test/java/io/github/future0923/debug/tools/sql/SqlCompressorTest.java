@@ -29,7 +29,7 @@ import java.util.List;
 class SqlCompressorTest {
 
     @Test
-    void compressSql() {
+    void compressSqlRemoveBlockComments() {
         String sql = "SELECT * \n" +
                 "FROM user  -- 用户表\n" +
                 "WHERE name = '张 三'  \n" +
@@ -37,7 +37,23 @@ class SqlCompressorTest {
                 "  /* 这里是块注释，描述条件 */\n" +
                 "  AND remark = \"备注 换行\"\n";
 
-        String compressed = SqlCompressor.compressSql(sql);
+        String compressed = SqlCompressor.compressSql(sql, false);
+        System.out.println(compressed);
+        String expect =
+                "SELECT * FROM user WHERE name = '张 三' AND age > 18 AND remark = \"备注 换行\"";
+        Assertions.assertEquals(expect, compressed);
+    }
+
+    @Test
+    void compressSqlPreserveBlockComments() {
+        String sql = "SELECT * \n" +
+                "FROM user  -- 用户表\n" +
+                "WHERE name = '张 三'  \n" +
+                "  AND age > 18 \n" +
+                "  /* 这里是块注释，描述条件 */\n" +
+                "  AND remark = \"备注 换行\"\n";
+
+        String compressed = SqlCompressor.compressSql(sql, true);
         System.out.println(compressed);
         String expect =
                 "SELECT * FROM user WHERE name = '张 三' AND age > 18 /* 这里是块注释，描述条件 */ AND remark = \"备注 换行\"";
