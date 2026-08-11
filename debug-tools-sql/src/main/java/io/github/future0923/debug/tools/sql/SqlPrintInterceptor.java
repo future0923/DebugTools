@@ -74,6 +74,7 @@ public class SqlPrintInterceptor {
 
     public static PrintSqlType printSqlType = PrintSqlType.NO;
     private static Boolean autoSaveSql = false;
+    private static Boolean compressSqlPreserveBlockComments = true;
     private static String applicationName = DebugToolsJvmUtils.getApplicationName();
     private static String projectName;
     private static String projectPathHash;
@@ -84,6 +85,10 @@ public class SqlPrintInterceptor {
 
     public static void setAutoSaveSql(Boolean autoSave) {
         autoSaveSql = autoSave;
+    }
+
+    public static void setCompressSqlPreserveBlockComments(Boolean compressSqlPreserveBlockCommentsFromAgent) {
+        compressSqlPreserveBlockComments = compressSqlPreserveBlockCommentsFromAgent;
     }
 
     public static void setApplicationName(String name) {
@@ -290,7 +295,7 @@ public class SqlPrintInterceptor {
                 resultSql = SqlFormatter.format(resultSql);
             }
             if (PrintSqlType.COMPRESS.equals(printSqlType)) {
-                resultSql = SqlCompressor.compressSql(resultSql);
+                resultSql = SqlCompressor.compressSql(resultSql, compressSqlPreserveBlockComments);
             }
             logger.infoForce("Execute consume Time: {} ms; Execute SQL: \n\u001B[31m{}\u001B[0m", consume, resultSql);
 

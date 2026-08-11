@@ -29,10 +29,11 @@ public class SqlCompressor {
     /**
      * 将格式化的 SQL 压缩为单行，保留字符串字面量，移除注释与多余空白
      *
-     * @param sql 格式化或缩进过的 SQL 语句
+     * @param sql                              格式化或缩进过的 SQL 语句
+     * @param compressSqlPreserveBlockComments 压缩打印 SQL 时，是否保留 块注释
      * @return 压缩后的 SQL 字符串
      */
-    public static String compressSql(String sql) {
+    public static String compressSql(String sql, boolean compressSqlPreserveBlockComments) {
         if (sql == null || sql.isEmpty()) {
             return sql;
         }
@@ -49,7 +50,7 @@ public class SqlCompressor {
         while (matcher.find()) {
             // 非字符串部分：清除注释、压缩空格
             String before = sql.substring(lastEnd, matcher.start());
-            String cleaned = removeComments(before);
+            String cleaned = removeComments(before, compressSqlPreserveBlockComments);
             result.append(normalizeWhitespace(cleaned));
 
             // 占位替换字符串
@@ -63,7 +64,7 @@ public class SqlCompressor {
 
         // 处理最后一段
         String tail = sql.substring(lastEnd);
-        result.append(normalizeWhitespace(removeComments(tail)));
+        result.append(normalizeWhitespace(removeComments(tail, compressSqlPreserveBlockComments)));
 
         // 步骤 2：还原被占位的字符串字面量
         String compressed = result.toString();
@@ -77,11 +78,13 @@ public class SqlCompressor {
     /**
      * 清除 SQL 注释（行注释 -- 和块注释 /* *\/）
      */
-    private static String removeComments(String input) {
+    private static String removeComments(String input, boolean compressSqlPreserveBlockComments) {
         // 移除 -- 注释（直至行尾）
         input = input.replaceAll("(?m)--.*?$", "");
         // 移除 /**/ 块注释
-        input = input.replaceAll("/\\*.*?\\*/", "");
+        if (!compressSqlPreserveBlockComments) {
+            input = input.replaceAll("/\\*.*?\\*/", "");
+        }
         return input;
     }
 
