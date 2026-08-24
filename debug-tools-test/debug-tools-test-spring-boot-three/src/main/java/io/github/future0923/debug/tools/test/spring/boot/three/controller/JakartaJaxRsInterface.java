@@ -14,22 +14,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package io.github.future0923.debug.tools.test.spring.boot.mybatis.controller;
+package io.github.future0923.debug.tools.test.spring.boot.three.controller;
 
-import io.github.future0923.debug.tools.test.spring.boot.mybatis.annotations.RestController_V1;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-
-import java.util.List;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
 
 /**
+ * 用于验证 IDEA 插件对声明在接口上的 Jakarta JAX-RS URL 搜索支持。
+ *
  * @author future0923
  */
-@RestController_V1("flow")
-public class FlowController {
+@Path("user")
+public interface JakartaJaxRsInterface {
 
-    @GetMapping("{flowId}/jobs")
-    public List<String> list(@PathVariable String flowId) {
-        return null;
-    }
+    @POST
+    @Path("/add")
+    String addUser(String name);
 }

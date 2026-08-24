@@ -92,7 +92,7 @@ public class ForestReload {
                 }
 
                 defineBean(className, dto.getBytes(), dto.getPath(), classLoader);
-                logger.reload("reload {} in {}", className);
+                logger.reload("reload {} in", className);
             }
         } catch (Exception e) {
             logger.error("refresh forest client error", e);
@@ -137,7 +137,7 @@ public class ForestReload {
         String beanName = beanNameGenerator.generateBeanName(beanDefinition, registry);
         BeanDefinitionHolder definitionHolder = new BeanDefinitionHolder(beanDefinition, beanName);
         forestBeanDefinition(forestScanner, definitionHolder, classLoader);
-        logger.reload("register forest client {} in spring bean", className);
+        logger.info("register forest client {} in spring bean", className);
     }
 
 }
