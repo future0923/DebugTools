@@ -254,11 +254,9 @@ public class SpringParamConvertUtils {
     }
 
     private static JSONObject toJsonObject(Object content) {
-        if (content instanceof JSONObject) {
-            return (JSONObject) content;
-        }
         try {
-            return DebugToolsJsonUtils.parseObj(content);
+            JSON json = DebugToolsJsonUtils.parse(content);
+            return json instanceof JSONObject ? (JSONObject) json : null;
         } catch (Exception e) {
             log.debug("解析JSON实体文件字段失败", e);
             return null;
