@@ -141,6 +141,15 @@ public class MyBatisPlusEntityReload extends AbstractMyBatisResourceReload<MyBat
                             //注入自定义方法
                             Object iSqlInjector = ReflectionHelper.invoke(null, classLoader.loadClass("com.baomidou.mybatisplus.core.toolkit.GlobalConfigUtils"), "getSqlInjector", new Class[]{Configuration.class}, configuration);
                             ReflectionHelper.invoke(iSqlInjector, iSqlInjector.getClass(), "inspectInject", new Class[]{MapperBuilderAssistant.class, Class.class}, builderAssistant, mapperClass);
+
+                            // 上面已按 mapperClass.getName()+"." 前缀删掉了该 mapper 的全部 mappedStatements
+                            // （含注解与 XML 定义的），而 inspectInject 只会重新注入 MP 的 CRUD 方法：
+                            // 接口上的 @Select 等注解 statement 与 XML statement 都不会回来，调用时报
+                            // "Invalid bound statement (not found)"，只能重启。这是多模块工程里
+                            // “改一行代码就要重启”的主要成因（任何 entity 变动都会连带波及它的全部 mapper）。
+                            // 这里复用 mapper 重载同一套完整重解析逻辑补齐（内部会先 removeMapper
+                            // 再 addMapper，因为实体重载没摘除注册表，直接 addMapper 会抛 "is known"）。
+                            MyBatisPlusMapperReload.reloadMapperStatements(configuration, mapperClass, classLoader);
                         }
                         logger.reload("reload entity class {}", className);
                     }
