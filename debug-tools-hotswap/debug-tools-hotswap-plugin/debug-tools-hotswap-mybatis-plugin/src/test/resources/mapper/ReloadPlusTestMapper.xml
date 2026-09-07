@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.github.future0923.debug.tools.hotswap.core.plugin.mybatis.reload.MyBatisPlusMapperReloadTest$ReloadPlusTestMapper">
+
+    <!-- 模拟用户真实 XML：resultMap + sql fragment + 引用 fragment 的 select，重解析时若残留未清会 StrictMap 冲突 -->
+    <resultMap id="BaseResultMap" type="java.lang.String">
+        <id column="ID" property="id" />
+    </resultMap>
+
+    <sql id="sysdateSql">sysdate</sql>
+
+    <select id="selectXml" resultType="java.lang.String">
+        select <include refid="sysdateSql" /> from dual
+    </select>
+
+</mapper>
