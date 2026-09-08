@@ -26,6 +26,8 @@ import org.apache.ibatis.binding.MapperRegistry;
 import org.apache.ibatis.builder.annotation.MapperAnnotationBuilder;
 import org.apache.ibatis.session.Configuration;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -66,10 +68,38 @@ public class MyBatisSpringMapperReload extends AbstractMyBatisResourceReload<MyB
                     loadedResources.remove(loadedResource);
                     MapperRegistry mapperRegistry = (MapperRegistry) ReflectionHelper.get(configuration, "mapperRegistry");
                     Map<Class<?>, MapperProxyFactory<?>> knownMappers = (Map<Class<?>, MapperProxyFactory<?>>) ReflectionHelper.get(mapperRegistry, "knownMappers");
-                    knownMappers.keySet().removeIf(mapperClass -> loadedResource.contains(mapperClass.getName()));
-                    new MapperAnnotationBuilder(configuration, Class.forName(className)).parse();
-                    defineBean(className, dto.getBytes(), dto.getPath());
-                    logger.reload("reload {} in {}", className, configuration);
+                    // 记录本次要移除的mapper，后续需要恢复，避免从注册表永久丢失
+                    List<Class<?>> removedMappers = new ArrayList<>();
+                    knownMappers.keySet().removeIf(mapperClass -> {
+                        if (loadedResource.contains(mapperClass.getName())) {
+                            removedMappers.add(mapperClass);
+                            return true;
+                        }
+                        return false;
+                    });
+                    try {
+                        Class<?> mapperClass = Class.forName(className);
+                        new MapperAnnotationBuilder(configuration, mapperClass).parse();
+                        defineBean(className, dto.getBytes(), dto.getPath());
+                        // defineBean 只对重新生成的 mapper bean 有效：对于启动时就已实例化的单例 bean，
+                        // MapperFactoryBean.checkDaoConfig 不会再执行，MapperRegistry 里被上面 removeIf 移除的
+                        // 条目不会自动恢复。这里必须显式重新注册，否则后续 getMapper 会报
+                        // "Type ... is not known to the MapperRegistry"。
+                        for (Class<?> removed : removedMappers) {
+                            if (!knownMappers.containsKey(removed)) {
+                                mapperRegistry.addMapper(removed);
+                            }
+                        }
+                        logger.reload("reload {} in {}", className, configuration);
+                    } catch (Exception e) {
+                        // 解析/注册任何一步失败都要恢复注册表，避免 mapper 丢失后所有方法调用失败
+                        for (Class<?> removed : removedMappers) {
+                            if (!knownMappers.containsKey(removed)) {
+                                knownMappers.put(removed, new MapperProxyFactory<>(removed));
+                            }
+                        }
+                        throw e;
+                    }
                 }
             }
         } catch (Exception e) {

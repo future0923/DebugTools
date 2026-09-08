@@ -55,5 +55,12 @@
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- 测试 MP 环境 mapper reload：MP 的 removeMapper 会清空 mappedStatements 中含 XML 的 statement -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-core</artifactId>
+            <version>3.5.1</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>

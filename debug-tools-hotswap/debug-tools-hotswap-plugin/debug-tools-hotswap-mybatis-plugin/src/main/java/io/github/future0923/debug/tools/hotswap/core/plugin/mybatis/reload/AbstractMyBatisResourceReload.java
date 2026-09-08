@@ -37,10 +37,20 @@ public abstract class AbstractMyBatisResourceReload<T> implements MyBatisResourc
 
     private static final Logger logger = Logger.getLogger(AbstractMyBatisResourceReload.class);
 
-    @Override
+@Override
     @SuppressWarnings("unchecked")
     public void reload(Object object) throws Exception {
-        doReload((T) object);
+        // 全局重载互斥：XML 重载（watcher 线程）与 mapper/实体重载（命令执行线程）会并发读写
+        // configuration 的 mappedStatements/loadedResources，实测出现 ConcurrentModificationException
+        // （重启后首轮批量 XML 重载与 mapper 重载撞车）。重入锁：mapper 重载内部再调
+        // reloadMapperStatements（同锁）不会死锁。
+        java.util.concurrent.locks.ReentrantLock lock = MyBatisSpringResourceManager.RELOAD_LOCK;
+        lock.lock();
+        try {
+            doReload((T) object);
+        } finally {
+            lock.unlock();
+        }
     }
 
     protected abstract void doReload(T object) throws Exception;
