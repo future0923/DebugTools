@@ -38,6 +38,14 @@ public class ClassLoaderResourceSyncUtils {
     }
 
     public static void syncToSystemClassLoader(ClassLoader sourceClassLoader) {
+        if (sourceClassLoader == null) {
+            return;
+        }
+        // Spring Boot 的 LaunchedURLClassLoader 等分层类加载器严禁注入 SystemClassLoader，
+        // 否则将破坏类加载隔离，导致 Spring AOP / 动态代理类与已加载 Bean 产生 IncompatibleClassChangeError。
+        if (isSpringBootClassLoader(sourceClassLoader)) {
+            return;
+        }
         ClassLoader systemClassLoader = ClassLoader.getSystemClassLoader();
         if (!(sourceClassLoader instanceof URLClassLoader) || !(systemClassLoader instanceof URLClassLoader)) {
             return;
@@ -61,15 +69,31 @@ public class ClassLoaderResourceSyncUtils {
         }
     }
 
+    private static boolean isSpringBootClassLoader(ClassLoader classLoader) {
+        String name = classLoader.getClass().getName();
+        return name.startsWith("org.springframework.boot.loader");
+    }
+
     static List<URL> missingUrls(URL[] sourceUrls, URL[] targetUrls) {
         Set<URL> targetUrlSet = new HashSet<>(Arrays.asList(targetUrls));
         List<URL> missingUrls = new ArrayList<>();
         for (URL sourceUrl : sourceUrls) {
+            if (isExcludedUrl(sourceUrl)) {
+                continue;
+            }
             if (!targetUrlSet.contains(sourceUrl)) {
                 missingUrls.add(sourceUrl);
             }
         }
         return missingUrls;
+    }
+
+    private static boolean isExcludedUrl(URL url) {
+        if (url == null) {
+            return true;
+        }
+        String path = url.toString();
+        return path.contains("BOOT-INF/") || path.contains("!/");
     }
 
     private static List<URL> missingUrls(URLClassLoader target, URL[] sourceUrls) {

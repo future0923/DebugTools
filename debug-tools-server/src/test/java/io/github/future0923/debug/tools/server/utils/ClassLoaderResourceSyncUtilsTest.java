@@ -40,4 +40,25 @@ class ClassLoaderResourceSyncUtilsTest {
         assertEquals(second, missingUrls.get(1));
         assertEquals(2, missingUrls.size());
     }
+
+    @Test
+    void missingUrlsFiltersOutBootInfAndNestedJarUrls() throws Exception {
+        URL regular = new URL("file:/target/classes/");
+        URL bootInf = new URL("jar:file:/app.jar!/BOOT-INF/lib/demo.jar!/");
+        URL nested = new URL("jar:file:/outer.jar!/inner.jar");
+
+        List<URL> missingUrls = ClassLoaderResourceSyncUtils.missingUrls(
+                new URL[]{regular, bootInf, nested},
+                new URL[]{}
+        );
+
+        assertEquals(1, missingUrls.size());
+        assertEquals(regular, missingUrls.get(0));
+    }
+
+    @Test
+    void syncToSystemClassLoaderHandlesNullSafely() {
+        // Should not throw NPE or mutate SystemClassLoader
+        ClassLoaderResourceSyncUtils.syncToSystemClassLoader(null);
+    }
 }
