@@ -9,7 +9,7 @@
     <version>${revision}</version>
     <packaging>pom</packaging>
     <properties>
-        <revision>5.0.0-alpha4</revision>
+        <revision>5.2.1</revision>
         <spring-boot.version>2.7.4</spring-boot.version>
         <lombok.version>1.18.38</lombok.version>
         <maven-resource-plugin.version>3.3.1</maven-resource-plugin.version>
@@ -27,6 +27,7 @@
         <module>debug-tools-test-spring-boot-three</module>
         <module>debug-tools-test-solon</module>
         <module>debug-tools-test-tomcat</module>
+        <module>debug-tools-test-tomcat-legacy</module>
         <module>debug-tools-test-mapstruct</module>
     </modules>
 
