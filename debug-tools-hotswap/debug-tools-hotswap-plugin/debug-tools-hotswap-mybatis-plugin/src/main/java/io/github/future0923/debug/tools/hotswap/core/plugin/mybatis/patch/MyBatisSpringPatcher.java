@@ -225,6 +225,9 @@ public class MyBatisSpringPatcher {
 
     @OnClassLoadEvent(classNameRegexp = "org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider")
     public static void patchClassPathScanningCandidateComponentProvider(CtClass clazz, ClassPool classPool) throws NotFoundException, CannotCompileException {
+        if (classPool.getOrNull("org.mybatis.spring.mapper.ClassPathMapperScanner") == null) {
+            return;
+        }
         CtMethod method = clazz.getDeclaredMethod("findCandidateComponents", new CtClass[]{classPool.get("java.lang.String")});
         method.insertAfter(
                 "if (this instanceof org.springframework.context.annotation.ClassPathBeanDefinitionScanner) {" +
