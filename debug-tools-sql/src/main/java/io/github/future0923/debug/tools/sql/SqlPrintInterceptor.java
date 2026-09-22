@@ -37,6 +37,7 @@ import io.github.future0923.debug.tools.utils.SqlFileWriter;
 import io.github.future0923.debug.tools.vm.JvmToolsUtils;
 
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.sql.CallableStatement;
@@ -103,6 +104,9 @@ public class SqlPrintInterceptor {
     }
 
     public static Connection proxyConnection(final Connection connection) {
+        if (connection == null) {
+            return null;
+        }
         Object c = Proxy.newProxyInstance(
                 SqlPrintByteCodeEnhance.class.getClassLoader(),
                 new Class[]{Connection.class},
@@ -113,6 +117,9 @@ public class SqlPrintInterceptor {
 
 
     private static Statement proxyStatement(final Statement statement) {
+        if (statement == null) {
+            return null;
+        }
         Object c = Proxy.newProxyInstance(
                 SqlPrintByteCodeEnhance.class.getClassLoader(),
                 new Class[]{PreparedStatement.class, Statement.class},
@@ -122,6 +129,9 @@ public class SqlPrintInterceptor {
     }
 
     private static Statement proxyCallableStatement(final Statement statement) {
+        if (statement == null) {
+            return null;
+        }
         Object c = Proxy.newProxyInstance(
                 SqlPrintByteCodeEnhance.class.getClassLoader(),
                 new Class[]{PreparedStatement.class, Statement.class, CallableStatement.class},
@@ -143,11 +153,17 @@ public class SqlPrintInterceptor {
 
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-            Object result = method.invoke(connection, args);
-            if (CONNECTION_AGENT_METHODS.contains(method.getName())) {
+            final Object result;
+            try {
+                result = method.invoke(connection, args);
+            } catch (InvocationTargetException e) {
+                // Preserve the JDBC driver's original exception and stack trace.
+                throw e.getCause();
+            }
+            if (result instanceof Statement && CONNECTION_AGENT_METHODS.contains(method.getName())) {
                 return proxyStatement((Statement) result);
             }
-            if (CONNECTION_AGENT_METHODS_PROCEDURE.contains(method.getName())) {
+            if (result instanceof Statement && CONNECTION_AGENT_METHODS_PROCEDURE.contains(method.getName())) {
                 return proxyCallableStatement((Statement) result);
             }
             return result;

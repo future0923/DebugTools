@@ -26,6 +26,7 @@ import java.sql.Connection;
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SqlDriverClassFileTransformerTest {
@@ -54,6 +55,29 @@ class SqlDriverClassFileTransformerTest {
         Object connection = connect.invoke(driver, "jdbc:mysql://localhost/test", new Properties());
 
         assertTrue(connection instanceof Connection);
+    }
+
+    @Test
+    void transformedDriverKeepsNullWhenDriverRejectsUrl() throws Exception {
+        byte[] originalDriverBytes = readResourceBytes(DRIVER_RESOURCE);
+        byte[] transformedDriverBytes = new SqlDriverClassFileTransformer().transform(
+                SqlDriverClassFileTransformerTest.class.getClassLoader(),
+                DRIVER_CLASS_NAME.replace('.', '/'),
+                null,
+                (ProtectionDomain) null,
+                originalDriverBytes
+        );
+
+        assertNotNull(transformedDriverBytes);
+
+        HiddenAgentClassLoader driverLoader = new HiddenAgentClassLoader(transformedDriverBytes);
+        Class<?> driverClass = driverLoader.loadClass(DRIVER_CLASS_NAME);
+        Object driver = driverClass.getDeclaredConstructor().newInstance();
+        Method connect = driverClass.getDeclaredMethod("connect", String.class, Properties.class);
+
+        Object connection = connect.invoke(driver, "jdbc:h2:mem:test", new Properties());
+
+        assertNull(connection);
     }
 
     private static byte[] readResourceBytes(String resource) throws Exception {

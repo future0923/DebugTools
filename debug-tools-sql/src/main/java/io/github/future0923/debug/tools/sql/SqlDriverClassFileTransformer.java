@@ -61,10 +61,15 @@ public class SqlDriverClassFileTransformer implements ClassFileTransformer {
 
     private String buildProxyConnectionCode() {
         String interceptorClassName = SqlPrintInterceptor.class.getName();
+        // JDBC 约定：当前驱动不接受 URL 时 connect() 返回 null。
+        // 不能把 null 包装成非空 JDK Proxy，否则调用方（如 Logback DBHelper.closeConnection）
+        // 会误判连接有效并调用 close()，在代理 target 上 NPE。
         return "{ " +
-                "   java.lang.Class __debugToolsInterceptorClass = java.lang.ClassLoader.getSystemClassLoader().loadClass(\"" + interceptorClassName + "\");" +
-                "   java.lang.reflect.Method __debugToolsProxyConnectionMethod = __debugToolsInterceptorClass.getDeclaredMethod(\"proxyConnection\", new java.lang.Class[]{java.sql.Connection.class});" +
-                "   return (java.sql.Connection) __debugToolsProxyConnectionMethod.invoke(null, new java.lang.Object[]{$_});" +
+                "   if ($_ != null) { " +
+                "       java.lang.Class __debugToolsInterceptorClass = java.lang.ClassLoader.getSystemClassLoader().loadClass(\"" + interceptorClassName + "\");" +
+                "       java.lang.reflect.Method __debugToolsProxyConnectionMethod = __debugToolsInterceptorClass.getDeclaredMethod(\"proxyConnection\", new java.lang.Class[]{java.sql.Connection.class});" +
+                "       $_ = (java.sql.Connection) __debugToolsProxyConnectionMethod.invoke(null, new java.lang.Object[]{$_});" +
+                "   } " +
                 "}";
     }
 }
