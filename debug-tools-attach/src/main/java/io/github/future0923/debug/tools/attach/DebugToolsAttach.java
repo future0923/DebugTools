@@ -72,7 +72,7 @@ public class DebugToolsAttach {
         JvmToolsUtils.init();
         AgentConfig.INSTANCE.createExtensionJar();
         SqlPrintByteCodeEnhance.enhance(inst, parse);
-        if (Objects.equals(parse.getHotswap(), "true")) {
+        if (Boolean.parseBoolean(parse.getHotswap()) || Boolean.parseBoolean(parse.getAutoHotswap())) {
             HotswapIgnoreStaticFieldUtils.create(parse.getIgnoreStaticFieldPath());
             HotswapAgent.init(parse, inst);
         }

@@ -73,6 +73,15 @@ public class PluginManager {
     private final Object hotswapLock = new Object();
 
     /**
+     * 返回所有 class 重定义通道共用的锁。
+     *
+     * @return 热重载锁
+     */
+    public Object getHotswapLock() {
+        return hotswapLock;
+    }
+
+    /**
      * 单例
      */
     private static final PluginManager INSTANCE = new PluginManager();

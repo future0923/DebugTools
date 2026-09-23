@@ -84,6 +84,10 @@ public class HotswapAgent {
         if (DebugToolsStringUtils.isNotBlank(args.getDisabledPlugins())) {
             Collections.addAll(disabledPlugins, StringUtils.delimitedListToStringArray(args.getDisabledPlugins(), AgentArgs.DISABLED_PLUGINS_SPLIT_CHAR));
         }
+        if (DebugToolsStringUtils.isNotBlank(args.getAutoHotswap())) {
+            autoHotswap = Boolean.parseBoolean(args.getAutoHotswap());
+            LOGGER.info("autoHotswap {} by agent argument.", autoHotswap ? "enabled" : "disabled");
+        }
         propertiesFilePath = args.getPropertiesFilePath();
     }
 

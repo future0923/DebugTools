@@ -92,6 +92,11 @@ public class AgentArgs {
     private String hotswap;
 
     /**
+     * 是否监听 class 文件变化并自动热重载. true | false
+     */
+    private String autoHotswap;
+
+    /**
      * 热重载/热部署时禁用的插件名集合
      */
     private String disabledPlugins;
@@ -143,7 +148,7 @@ public class AgentArgs {
         if (DebugToolsStringUtils.isNotBlank(agentArgs)) {
             String[] argsArray = agentArgs.split(",");
             for (String arg : argsArray) {
-                String[] keyValue = arg.split("=");
+                String[] keyValue = arg.split("=", 2);
                 if (keyValue.length == 2) {
                     try {
                         Field field = AgentArgs.class.getDeclaredField(keyValue[0]);
@@ -156,6 +161,8 @@ public class AgentArgs {
                         } else {
                             field.set(config, keyValue[1]);
                         }
+                    } catch (NoSuchFieldException e) {
+                        logger.warning("Unknown agent argument '{}', ignored.", keyValue[0]);
                     } catch (Exception ignored) {
                     }
                 }
@@ -218,6 +225,9 @@ public class AgentArgs {
                 properties.load(configurationURL.openStream());
                 if (DebugToolsStringUtils.isBlank(hotswap)) {
                     hotswap = properties.getProperty("hotswap", "true");
+                }
+                if (DebugToolsStringUtils.isBlank(autoHotswap)) {
+                    autoHotswap = properties.getProperty("autoHotswap", "false");
                 }
                 if (DebugToolsStringUtils.isBlank(server)) {
                     server = properties.getProperty("server", "true");

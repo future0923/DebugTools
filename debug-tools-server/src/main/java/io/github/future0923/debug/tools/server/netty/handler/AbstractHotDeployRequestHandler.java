@@ -47,11 +47,6 @@ public abstract class AbstractHotDeployRequestHandler<T extends Packet> implemen
 
     private static final Logger logger = Logger.getLogger(AbstractHotDeployRequestHandler.class);
 
-    /**
-     * instrumentation的redefineClasses锁
-     */
-    protected final Object hotswapLock = new Object();
-
     protected abstract Map<String, byte[]> getByteCodes(T packet) throws DefaultClassLoaderException;
 
     protected abstract ClassLoader getClassLoader(T packet) throws DefaultClassLoaderException;
@@ -92,7 +87,7 @@ public abstract class AbstractHotDeployRequestHandler<T extends Packet> implemen
         }
         try {
             logger.reload("Reloading classes {}", reloadClass);
-            synchronized (hotswapLock) {
+            synchronized (PluginManager.getInstance().getHotswapLock()) {
                 Instrumentation instrumentation = DebugToolsBootstrap.INSTANCE.getInstrumentation();
                 instrumentation.redefineClasses(definitions.toArray(new ClassDefinition[0]));
             }

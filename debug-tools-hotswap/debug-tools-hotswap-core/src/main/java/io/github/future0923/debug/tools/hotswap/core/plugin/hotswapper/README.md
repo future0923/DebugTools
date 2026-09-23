@@ -19,6 +19,13 @@ Just specify
     # specify autoHotswap.port with JPDA port.
     autoHotswap=false
 
+When the DebugTools agent is started with `-javaagent`, the watcher can also be enabled
+without placing a properties file on the application classpath:
+
+    java -javaagent:debug-tools-agent.jar=hotswap=true,autoHotswap=true MainClass
+
+The agent argument is opt-in and takes precedence over the external properties file.
+
 You need to start java with JPDA enabled. For example:
 
     java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000 --XXaltjvm=dcevm -javaagent:HotswapAgent.jar MainClass
@@ -49,4 +56,3 @@ If you enable the `autoHotswap=true` in your application, all class files that a
 
 Note that you can have multiple applications and hotswap-agent.properties for an application server and you need
 to enable autoHotswap for each application (classloader) separately.
-
