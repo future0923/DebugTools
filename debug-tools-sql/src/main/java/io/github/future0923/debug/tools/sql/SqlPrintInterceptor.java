@@ -314,6 +314,7 @@ public class SqlPrintInterceptor {
                 resultSql = SqlCompressor.compressSql(resultSql, compressSqlPreserveBlockComments);
             }
             logger.infoForce("Execute consume Time: {} ms; Execute SQL: \n\u001B[31m{}\u001B[0m", consume, resultSql);
+            SqlRecentBuffer.add(resultSql, consume, dbType.getType(), applicationName);
 
             // 根据配置写入SQL记录到文件
             if (BooleanUtil.isTrue(autoSaveSql)) {

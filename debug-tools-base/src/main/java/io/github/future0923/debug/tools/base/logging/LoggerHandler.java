@@ -104,7 +104,9 @@ public class LoggerHandler {
             stringBuffer.append(formatErrorTrace(throwable));
         }
 
-        printMessage(stringBuffer.toString());
+        String rendered = stringBuffer.toString();
+        DebugToolsLogBuffer.add(level.name(), clazz.getName(), Thread.currentThread().getName(), rendered, throwable == null ? null : throwable.toString());
+        printMessage(rendered);
     }
 
     private String formatErrorTrace(Throwable throwable) {
