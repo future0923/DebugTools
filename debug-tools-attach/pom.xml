@@ -110,6 +110,16 @@
         </dependency>
         <dependency>
             <groupId>io.github.future0923</groupId>
+            <artifactId>debug-tools-hotswap-thymeleaf-plugin</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.future0923</groupId>
+            <artifactId>debug-tools-hotswap-freemarker-plugin</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.future0923</groupId>
             <artifactId>debug-tools-sql</artifactId>
             <version>${revision}</version>
         </dependency>

@@ -26,6 +26,8 @@
         <module>debug-tools-hotswap-intellij-plugin</module>
         <module>debug-tools-hotswap-feign-plugin</module>
         <module>debug-tools-hotswap-forest-plugin</module>
+        <module>debug-tools-hotswap-thymeleaf-plugin</module>
+        <module>debug-tools-hotswap-freemarker-plugin</module>
     </modules>
 
 </project>
