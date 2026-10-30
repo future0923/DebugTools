@@ -62,7 +62,7 @@ public class JacksonPlugin {
     @Init
     public Scheduler scheduler;
 
-    @OnClassLoadEvent(classNameRegexp = "com.fasterxml.jackson.databind.ObjectMapper", events = LoadEvent.DEFINE, skipSynthetic = false)
+    @OnClassLoadEvent(classNameRegexp = "(com.fasterxml.jackson.databind.ObjectMapper)|(tools.jackson.databind.ObjectMapper)", events = LoadEvent.DEFINE, skipSynthetic = false)
     public static void patchObjectMapper(CtClass ctClass) throws CannotCompileException {
         instantiateJackJson(ctClass);
         CtMethod clearCacheMethod = CtNewMethod.make("public void " + CLEAR_CACHE_METHOD + "() {_rootDeserializers.clear();}", ctClass);
@@ -70,7 +70,7 @@ public class JacksonPlugin {
         logger.info("patch jackson ObjectMapper success");
     }
 
-    @OnClassLoadEvent(classNameRegexp = "com.fasterxml.jackson.databind.ser.SerializerCache", events = LoadEvent.DEFINE, skipSynthetic = false)
+    @OnClassLoadEvent(classNameRegexp = "(com.fasterxml.jackson.databind.ser.SerializerCache)|(tools.jackson.databind.ser.SerializerCache)", events = LoadEvent.DEFINE, skipSynthetic = false)
     public static void patchSerializerCache(CtClass ctClass) throws CannotCompileException {
         instantiateJackJson(ctClass);
         CtMethod clearCacheMethod = CtNewMethod.make("public void " + CLEAR_CACHE_METHOD + "() {flush();}", ctClass);
@@ -78,7 +78,7 @@ public class JacksonPlugin {
         logger.info("patch jackson SerializerCache success");
     }
 
-    @OnClassLoadEvent(classNameRegexp = "com.fasterxml.jackson.databind.deser.DeserializerCache", events = LoadEvent.DEFINE, skipSynthetic = false)
+    @OnClassLoadEvent(classNameRegexp = "(com.fasterxml.jackson.databind.deser.DeserializerCache)|(tools.jackson.databind.deser.DeserializerCache)", events = LoadEvent.DEFINE, skipSynthetic = false)
     public static void patchDeserializerCache(CtClass ctClass) throws CannotCompileException {
         instantiateJackJson(ctClass);
         CtMethod clearCacheMethod = CtNewMethod.make("public void " + CLEAR_CACHE_METHOD + "() {flushCachedDeserializers();}", ctClass);
@@ -87,14 +87,22 @@ public class JacksonPlugin {
     }
 
     @OnClassLoadEvent(classNameRegexp = "com.fasterxml.jackson.databind.ser.impl.ReadOnlyClassToSerializerMap", events = LoadEvent.DEFINE, skipSynthetic = false)
-    public static void patchReadOnlyClassToSerializerMap(CtClass ctClass) throws CannotCompileException {
+    public static void patchTowReadOnlyClassToSerializerMap(CtClass ctClass) throws CannotCompileException {
         instantiateJackJson(ctClass);
         CtMethod clearCacheMethod = CtNewMethod.make("public void " + CLEAR_CACHE_METHOD + "() {_buckets = new com.fasterxml.jackson.databind.ser.impl.ReadOnlyClassToSerializerMap.Bucket[_size];}", ctClass);
         ctClass.addMethod(clearCacheMethod);
         logger.info("patch jackson ReadOnlyClassToSerializerMap success");
     }
 
-    @OnClassLoadEvent(classNameRegexp = "com.fasterxml.jackson.databind.type.TypeFactory", events = LoadEvent.DEFINE, skipSynthetic = false)
+    @OnClassLoadEvent(classNameRegexp = "tools.jackson.databind.ser.impl.ReadOnlyClassToSerializerMap", events = LoadEvent.DEFINE, skipSynthetic = false)
+    public static void patchThreePlusReadOnlyClassToSerializerMap(CtClass ctClass) throws CannotCompileException {
+        instantiateJackJson(ctClass);
+        CtMethod clearCacheMethod = CtNewMethod.make("public void " + CLEAR_CACHE_METHOD + "() {_buckets = new tools.jackson.databind.ser.impl.ReadOnlyClassToSerializerMap.Bucket[_size];}", ctClass);
+        ctClass.addMethod(clearCacheMethod);
+        logger.info("patch jackson ReadOnlyClassToSerializerMap success");
+    }
+
+    @OnClassLoadEvent(classNameRegexp = "(com.fasterxml.jackson.databind.type.TypeFactory)|(tools.jackson.databind.type.TypeFactory)", events = LoadEvent.DEFINE, skipSynthetic = false)
     public static void patchTypeFactory(CtClass ctClass) throws CannotCompileException {
         instantiateJackJson(ctClass);
         CtMethod clearCacheMethod = CtNewMethod.make("public void " + CLEAR_CACHE_METHOD + "() { _typeCache.clear();}", ctClass);
@@ -102,7 +110,7 @@ public class JacksonPlugin {
         logger.info("patch jackson TypeFactory success");
     }
 
-    @OnClassLoadEvent(classNameRegexp = "com.fasterxml.jackson.databind.util.LRUMap", events = LoadEvent.DEFINE, skipSynthetic = false)
+    @OnClassLoadEvent(classNameRegexp = "(com.fasterxml.jackson.databind.util.LRUMap)|(tools.jackson.databind.util.SimpleLookupCache)", events = LoadEvent.DEFINE, skipSynthetic = false)
     public static void patchLRUMap(CtClass ctClass) throws CannotCompileException {
         instantiateJackJson(ctClass);
         CtMethod clearCacheMethod = CtNewMethod.make("public void " + CLEAR_CACHE_METHOD + "() { clear();}", ctClass);
@@ -115,7 +123,11 @@ public class JacksonPlugin {
         scheduler.scheduleCommand(command, 500);
     }
 
-    private static void instantiateJackJson(CtClass ctClass) throws CannotCompileException {
+    public void registerJacksonObj(Object objectMapper) {
+        jacksonObj.add(objectMapper);
+    }
+
+    public static void instantiateJackJson(CtClass ctClass) throws CannotCompileException {
         StringBuilder src = new StringBuilder("{");
         src.append(PluginManagerInvoker.buildInitializePlugin(JacksonPlugin.class));
         src.append(PluginManagerInvoker.buildCallPluginMethod(JacksonPlugin.class, "registerJacksonObj", "this", "java.lang.Object"));
@@ -124,9 +136,4 @@ public class JacksonPlugin {
             constructor.insertAfter(src.toString());
         }
     }
-
-    public void registerJacksonObj(Object objectMapper) {
-        jacksonObj.add(objectMapper);
-    }
-
 }
