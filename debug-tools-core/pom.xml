@@ -63,6 +63,8 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-antrun-plugin</artifactId>
+                <!-- 支持 target 配置，保证 Boot 内置的是本轮构建的 Core。 -->
+                <version>3.1.0</version>
                 <executions>
                     <execution>
                         <id>clean</id>
@@ -72,7 +74,8 @@
                         </goals>
                         <configuration>
                             <target>
-                                <delete dir="${project.basedir}/../debug-tools-boot/src/main/resources/lib"/>
+                                <!-- 只清理 Core，保留同一轮 Agent 构建刚复制的产物。 -->
+                                <delete file="${project.basedir}/../debug-tools-boot/src/main/resources/lib/${project.build.finalName}.jar"/>
                             </target>
                         </configuration>
                     </execution>
