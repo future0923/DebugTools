@@ -79,6 +79,8 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-antrun-plugin</artifactId>
+                <!-- 支持 target 配置，确保 dist 中的 Boot 随版本更新。 -->
+                <version>3.1.0</version>
                 <executions>
                     <execution>
                         <id>clean</id>
